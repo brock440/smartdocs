@@ -29,7 +29,7 @@ async def upload_file(
     file: UploadFile = File(...)
 ):
     document = Document(name=file.filename, file_type=file_type, file_size=file_size, file_hash=file_hash, file=file)
-    document_handler = await DocumentHandler.create(document)
+    document_handler = await DocumentHandler.for_upload(document)    
     if document_handler.verify_document():
         document_handler.save_document()
         return {'status': 'ok'}
@@ -39,16 +39,22 @@ async def upload_file(
 
 @app.get('/download/{name}')
 async def download_file(name: str):
-    document_handler = await DocumentHandler.for_s3(name)
-    response = document_handler.get_document()
-    file_stream = response['Body']
-    content_type = response.get('ContentType', 'application/octet-stream')
+    try:
+        document_handler = await DocumentHandler.for_s3(name)
+        response = document_handler.get_document()
+        file_stream = response['Body']
+        content_type = response.get('ContentType', 'application/octet-stream')
 
-    return StreamingResponse(
-        file_stream, 
-        media_type=content_type,
-        headers={"Content-Disposition": f"attachment; filename={name}"}
-    )
+        return StreamingResponse(
+            file_stream, 
+            media_type=content_type,
+            headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"}
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            raise HTTPException(status_code=404, detail='File not found')
+        else:
+            raise HTTPException(status_code=500, detail='Internal server error')
 
 @app.delete('/delete/{name}')
 async def delete_file(name: str):

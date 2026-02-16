@@ -25,14 +25,19 @@ class DocumentHandler:
     
     @classmethod
     async def for_s3(cls, name):
+        """
+        This is for downloading/deletion of files from S3
+        verify_document is not required for this class
+        """
         return cls(name)
 
     def verify_document(self):
+        """This is not required for downloading/deletion of files from S3"""
         file_hash = hashlib.sha256(self.data).hexdigest()
         if self.metadata['file_hash'] != file_hash:
-            raise ValueError("File hash does not match")
-        else:
-            return True
+            return False
+        
+        return True
     
 
     def save_document(self):
