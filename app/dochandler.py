@@ -33,6 +33,9 @@ class DocumentHandler:
 
     def verify_document(self):
         """This is not required for downloading/deletion of files from S3"""
+        if self.data is None or self.metadata is None:
+            raise ValueError("verify_document requires data and metadata; not available for S3 download/delete instances")
+        
         file_hash = hashlib.sha256(self.data).hexdigest()
         if self.metadata['file_hash'] != file_hash:
             return False

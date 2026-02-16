@@ -1,6 +1,8 @@
 from fastapi import UploadFile, File, Form
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from botocore.exceptions import ClientError
+from urllib.parse import quote
 from pydantic import BaseModel
 from dochandler import DocumentHandler
 import uvicorn
@@ -53,8 +55,8 @@ async def download_file(name: str):
     except ClientError as e:
         if e.response['Error']['Code'] == 'NoSuchKey':
             raise HTTPException(status_code=404, detail='File not found')
-        else:
-            raise HTTPException(status_code=500, detail='Internal server error')
+    
+        raise HTTPException(status_code=500, detail='Internal server error')
 
 @app.delete('/delete/{name}')
 async def delete_file(name: str):
