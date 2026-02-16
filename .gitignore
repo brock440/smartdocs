@@ -1,0 +1,16 @@
+# Virtual Environment
+Lib/
+Include/
+Scripts/
+pyvenv.cfg
+.venv
+venv
+env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environment variables
+.env

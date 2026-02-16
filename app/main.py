@@ -1,5 +1,6 @@
 from fastapi import UploadFile, File, Form
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dochandler import DocumentHandler
 import uvicorn
@@ -29,7 +30,30 @@ async def upload_file(
 ):
     document = Document(name=file.filename, file_type=file_type, file_size=file_size, file_hash=file_hash, file=file)
     document_handler = await DocumentHandler.create(document)
-    document_handler.verify_document()
+    if document_handler.verify_document():
+        document_handler.save_document()
+        return {'status': 'ok'}
+    else:
+        return {'status': 'File hash does not match'}
+
+
+@app.get('/download/{name}')
+async def download_file(name: str):
+    document_handler = await DocumentHandler.for_s3(name)
+    response = document_handler.get_document()
+    file_stream = response['Body']
+    content_type = response.get('ContentType', 'application/octet-stream')
+
+    return StreamingResponse(
+        file_stream, 
+        media_type=content_type,
+        headers={"Content-Disposition": f"attachment; filename={name}"}
+    )
+
+@app.delete('/delete/{name}')
+async def delete_file(name: str):
+    document_handler = await DocumentHandler.for_s3(name)
+    document_handler.delete_document()
     return {'status': 'ok'}
 
 if __name__ == '__main__':
