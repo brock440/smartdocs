@@ -64,12 +64,31 @@ class DocumentHandler:
         client = genai.Client(api_key=os.getenv('GEMINI_AI_KEY'))
         file_data = io.BytesIO(document['Body'].read())
         uploaded_file = client.files.upload(file=file_data, config={'mime_type': 'application/pdf'})
-        response = client.models.count_tokens(
+        
+        while uploaded_file.state.name == "PROCESSING":
+            print("Waiting for PDF to be indexed...")
+            time.sleep(2)
+            uploaded_file = client.files.get(name=uploaded_file.name)
+        
+        if uploaded_file.state.name == "FAILED":
+            raise ValueError("PDF processing failed on Gemini's side.")
+        
+        prompt = """
+        Please analyze this Bill of Lading (BL). 
+        Extract the following in JSON format:
+        - Shipper Name
+        - Consignee Name
+        - Container Numbers
+        - Port of Loading
+        - Total Weight
+        """
+    
+        result = client.models.generate_content(
             model='gemini-2.0-flash',
-            contents=[uploaded_file]
+            contents=[uploaded_file, prompt]
         )
         
-        print(response.total_tokens)
+        print(result.text)
 
 
 
