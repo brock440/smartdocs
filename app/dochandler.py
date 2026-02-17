@@ -1,6 +1,9 @@
 import hashlib
 import boto3
 from dotenv import load_dotenv
+from google import genai
+import os
+import io
 
 load_dotenv()
 
@@ -57,7 +60,17 @@ class DocumentHandler:
 
 
     def process_document(self):
-        pass
+        document = self.s3.get_object(Bucket='suplyne-smartdocs', Key=self.name)
+        client = genai.Client(api_key=os.getenv('GEMINI_AI_KEY'))
+        file_data = io.BytesIO(document['Body'].read())
+        uploaded_file = client.files.upload(file=file_data, config={'mime_type': 'application/pdf'})
+        response = client.models.count_tokens(
+            model='gemini-2.0-flash',
+            contents=[uploaded_file]
+        )
+        
+        print(response.total_tokens)
+
 
 
     def delete_document(self):

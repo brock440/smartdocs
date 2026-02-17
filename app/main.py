@@ -58,6 +58,12 @@ async def download_file(name: str):
     
         raise HTTPException(status_code=500, detail='Internal server error')
 
+@app.post('/process')
+async def process_document(name: str):
+    document_handler = await DocumentHandler.for_s3(name)
+    document_handler.process_document()
+    return {'status': 'ok'}
+
 @app.delete('/delete/{name}')
 async def delete_file(name: str):
     document_handler = await DocumentHandler.for_s3(name)
